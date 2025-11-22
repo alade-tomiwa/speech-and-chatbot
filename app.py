@@ -89,25 +89,30 @@ def response(user_response):
         
     sent_tokens.remove(user_response)
     return robo_response
-
-# --- 5. SPEECH RECOGNITION ---
+# --- SAFE SPEECH FUNCTION ---
 def transcribe_speech():
     r = sr.Recognizer()
-    with sr.Microphone() as source:
-        st.info("Listening... Please speak clearly.")
-        r.adjust_for_ambient_noise(source)
-        try:
-            audio_text = r.listen(source, timeout=5)
-            st.info("Processing...")
-            text = r.recognize_google(audio_text)
-            return text
-        except sr.UnknownValueError:
-            return "Sorry, I did not understand that."
-        except sr.RequestError:
-            return "Sorry, speech service is unavailable."
-        except:
-            return "No speech detected."
-
+    try:
+        # We try to access the microphone
+        with sr.Microphone() as source:
+            st.info("Listening... Speak now!")
+            r.adjust_for_ambient_noise(source)
+            try:
+                audio_text = r.listen(source, timeout=5)
+                st.info("Transcribing...")
+                text = r.recognize_google(audio_text)
+                return text
+            except sr.UnknownValueError:
+                return "Sorry, I did not understand that."
+            except sr.RequestError:
+                return "Sorry, speech service is down."
+            except sr.WaitTimeoutError:
+                return "No speech detected."
+    except OSError:
+        # This error happens on Streamlit Cloud because there is no mic
+        return "ERROR: No Microphone detected. (This feature only works on Localhost, not Cloud)."
+    except Exception as e:
+        return f"An error occurred: {e}"
 
 # --- 7. MAIN INTERFACE ---
 st.markdown("#### Ask me about the Stadium, Manager, or Players.")
@@ -143,4 +148,5 @@ if user_input:
         # AI Generation
         with st.spinner("Thinking..."):
             result = response(user_input)
+
             st.markdown(f"### 🤖 Bot says:\n> {result.capitalize()}")
